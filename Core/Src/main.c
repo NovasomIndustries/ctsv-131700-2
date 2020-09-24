@@ -17,7 +17,6 @@
   ******************************************************************************
   */
 /* USER CODE END Header */
-
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 
@@ -62,6 +61,8 @@ static void MX_TIM17_Init(void);
 static void MX_TIM14_Init(void);
 /* USER CODE BEGIN PFP */
 
+
+
 const uint16_t default_duty = 450;
 uint16_t    current_duty = 0;
 
@@ -77,6 +78,27 @@ uint16_t	ms10_flag = 0;
 uint8_t     speed_plus_status = 0;
 uint8_t     speed_minus_status = 0;
 uint8_t     on_status = 0;
+
+uint32_t	tim1_value = STEP;
+uint32_t	ramp_tim1 = 0;
+uint32_t	rampstep_tim1 = RAMP_STEP;
+
+uint32_t	finished_flag = 0;
+uint32_t	finished_time = 0;
+
+
+void TIM1_IRQ_Callback(void)
+{
+	ramp_tim1++;
+	if ( ramp_tim1 > RAMP_STEP )
+	{
+		ramp_tim1 = 0;
+		tim1_value += STEP;
+		if ( tim1_value < LIMIT )
+			htim1.Instance->CCR1 = tim1_value;
+	}
+}
+
 
 void TIM14_IRQ_Callback(void)
 {
@@ -94,7 +116,10 @@ void print_set_speed(void)
 	lcd_wr_stct.xpos = 10;
 	lcd_wr_stct.ypos = (uint8_t)(ST7735_HEIGHT-CHAR_H)/2;
 	if ( time_set < 10 )
+	{
+		LcdSetBrightness(LOW_BRIGHTNESS);
 		lcd_wr_stct.fore_color = ST7735_RED;
+	}
 	LcdWrite16x26(&lcd_wr_stct);
 }
 
@@ -118,9 +143,13 @@ void TIM17_IRQ_Callback(void)
 		if ( time_set == 0 )
 		{
 			HAL_TIM_Base_Stop_IT(&htim17);
-			time_set = START_TIME;
+			time_set = stored_time_set;
 			status = STOPPED;
-			print_work_end();
+			tim1_value = STEP;
+			htim1.Instance->CCR1 = tim1_value;
+			HAL_TIM_PWM_Stop_IT(&htim1,TIM_CHANNEL_1);
+			finished_flag = 1;
+			finished_time = FINISHED_TIME_BANNER;
 		}
 		else
 			print_set_speed();
@@ -143,7 +172,6 @@ int main(void)
   /* USER CODE BEGIN 1 */
 
   /* USER CODE END 1 */
-  
 
   /* MCU Configuration--------------------------------------------------------*/
 
@@ -175,10 +203,11 @@ int main(void)
 
   LcdInit();
 
-  htim1.Instance->CCR1 = 0;
+  //htim1.Instance->CCR1 = 0;
 
   HAL_Delay(2000);
   LcdClearScreen(&lcd_wr_stct);
+  LcdSetBrightness(FULL_BRIGHTNESS);
   print_set_speed();
   HAL_TIM_Base_Start_IT(&htim14);
 
@@ -191,6 +220,21 @@ int main(void)
 	  if ( ms10_flag == 1 )
 	  {
 			ms10_flag = 0;
+			if ( finished_flag == 1)
+			{
+				if (  finished_time == FINISHED_TIME_BANNER )
+				{
+					LcdSetBrightness(FULL_BRIGHTNESS);
+					print_work_end();
+				}
+				finished_time--;
+				if ( finished_time == 0 )
+				{
+					LcdClearScreen(&lcd_wr_stct);
+					print_set_speed();
+					finished_flag = 0;
+				}
+			}
 			if ( status == STOPPED )
 			{
 				if (!HAL_GPIO_ReadPin(SPEED_PLUS_GPIO_Port, SPEED_PLUS_Pin))
@@ -201,6 +245,7 @@ int main(void)
 						{
 							if ( time_set < MAX_TIME )
 								time_set += TIME_STEP;
+							stored_time_set = time_set;
 							print_set_speed();
 						}
 					}
@@ -217,6 +262,7 @@ int main(void)
 						{
 							if ( time_set > MIN_TIME )
 								time_set -= TIME_STEP;
+							stored_time_set = time_set;
 							print_set_speed();
 						}
 					}
@@ -234,17 +280,24 @@ int main(void)
 					on_status = 1;
 					if ( status == STOPPED )
 					{
-						stored_time_set = time_set;
+						LcdSetBrightness(LOW_BRIGHTNESS);
+						print_set_speed();
+						ramp_tim1 = 0;
+						tim1_value = STEP;
 						HAL_TIM_Base_Start_IT(&htim17);
+						HAL_TIM_PWM_Start_IT(&htim1,TIM_CHANNEL_1);
 						status = RUNNING;
-						LcdSetBrightness(FULL_BRIGHTNESS);
 					}
 					else
 					{
+						tim1_value = STEP;
+						htim1.Instance->CCR1 = tim1_value;
+						HAL_TIM_PWM_Stop_IT(&htim1,TIM_CHANNEL_1);
 						HAL_TIM_Base_Stop_IT(&htim17);
 						time_set = stored_time_set;
 						print_set_speed();
 						status = STOPPED;
+						LcdSetBrightness(FULL_BRIGHTNESS);
 					}
 				}
 			}
@@ -271,10 +324,11 @@ void SystemClock_Config(void)
   RCC_OscInitTypeDef RCC_OscInitStruct = {0};
   RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
 
-  /** Configure the main internal regulator output voltage 
+  /** Configure the main internal regulator output voltage
   */
   HAL_PWREx_ControlVoltageScaling(PWR_REGULATOR_VOLTAGE_SCALE1);
-  /** Initializes the CPU, AHB and APB busses clocks 
+  /** Initializes the RCC Oscillators according to the specified parameters
+  * in the RCC_OscInitTypeDef structure.
   */
   RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI;
   RCC_OscInitStruct.HSIState = RCC_HSI_ON;
@@ -285,7 +339,7 @@ void SystemClock_Config(void)
   {
     Error_Handler();
   }
-  /** Initializes the CPU, AHB and APB busses clocks 
+  /** Initializes the CPU, AHB and APB buses clocks
   */
   RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
                               |RCC_CLOCKTYPE_PCLK1;
@@ -351,6 +405,7 @@ static void MX_TIM1_Init(void)
 
   /* USER CODE END TIM1_Init 0 */
 
+  TIM_ClockConfigTypeDef sClockSourceConfig = {0};
   TIM_MasterConfigTypeDef sMasterConfig = {0};
   TIM_OC_InitTypeDef sConfigOC = {0};
   TIM_BreakDeadTimeConfigTypeDef sBreakDeadTimeConfig = {0};
@@ -365,6 +420,15 @@ static void MX_TIM1_Init(void)
   htim1.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim1.Init.RepetitionCounter = 0;
   htim1.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_Base_Init(&htim1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
+  if (HAL_TIM_ConfigClockSource(&htim1, &sClockSourceConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
   if (HAL_TIM_PWM_Init(&htim1) != HAL_OK)
   {
     Error_Handler();
@@ -377,10 +441,10 @@ static void MX_TIM1_Init(void)
     Error_Handler();
   }
   sConfigOC.OCMode = TIM_OCMODE_PWM1;
-  sConfigOC.Pulse = 500;
+  sConfigOC.Pulse = 2;
   sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
   sConfigOC.OCNPolarity = TIM_OCNPOLARITY_HIGH;
-  sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
+  sConfigOC.OCFastMode = TIM_OCFAST_ENABLE;
   sConfigOC.OCIdleState = TIM_OCIDLESTATE_RESET;
   sConfigOC.OCNIdleState = TIM_OCNIDLESTATE_RESET;
   if (HAL_TIM_PWM_ConfigChannel(&htim1, &sConfigOC, TIM_CHANNEL_1) != HAL_OK)
@@ -602,7 +666,7 @@ void Error_Handler(void)
   * @retval None
   */
 void assert_failed(uint8_t *file, uint32_t line)
-{ 
+{
   /* USER CODE BEGIN 6 */
   /* User can add his own implementation to report the file name and line number,
      tex: printf("Wrong parameters value: file %s on line %d\r\n", file, line) */

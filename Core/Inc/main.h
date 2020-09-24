@@ -54,7 +54,10 @@ extern "C" {
 #define DEBOUNCE_TIME 10
 #define TIM14_COUNTS 10
 #define TIM17_COUNTS 1000
-
+#define	LIMIT		500
+#define	STEP		10
+#define	RAMP_STEP	20
+#define	FINISHED_TIME_BANNER	200
 
 /* USER CODE END EC */
 
@@ -69,6 +72,7 @@ void HAL_TIM_MspPostInit(TIM_HandleTypeDef *htim);
 void Error_Handler(void);
 
 /* USER CODE BEGIN EFP */
+void TIM1_IRQ_Callback(void);
 void TIM17_IRQ_Callback(void);
 void TIM14_IRQ_Callback(void);
 

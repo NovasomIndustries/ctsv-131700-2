@@ -28,6 +28,7 @@ typedef struct {
 #define	FULL_BRIGHTNESS	1000
 extern	void LcdInit(void);
 extern void LcdWrite11x18(Video *data);
+extern void LcdWrite16x26(Video *wr_struct);
 extern void LcdClearScreen(Video *data);
 extern	void LcdSetBrightness(uint16_t brightness);
 
