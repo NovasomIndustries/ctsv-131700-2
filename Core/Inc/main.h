@@ -79,20 +79,28 @@ void TIM14_IRQ_Callback(void);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
+#define LOW_IS_NEWVISION_Pin GPIO_PIN_14
+#define LOW_IS_NEWVISION_GPIO_Port GPIOC
 #define SPEED_MINUS_Pin GPIO_PIN_15
 #define SPEED_MINUS_GPIO_Port GPIOC
 #define SPEED_PLUS_Pin GPIO_PIN_0
 #define SPEED_PLUS_GPIO_Port GPIOA
-#define LCDCS_Pin GPIO_PIN_3
-#define LCDCS_GPIO_Port GPIOA
+#define LCD_CS_Pin GPIO_PIN_3
+#define LCD_CS_GPIO_Port GPIOA
 #define ON_Pin GPIO_PIN_4
 #define ON_GPIO_Port GPIOA
+#define BATTERY_Pin GPIO_PIN_5
+#define BATTERY_GPIO_Port GPIOA
 #define BACKLIGHT_PWM_Pin GPIO_PIN_6
 #define BACKLIGHT_PWM_GPIO_Port GPIOA
-#define LCDDC_Pin GPIO_PIN_11
-#define LCDDC_GPIO_Port GPIOA
-#define LCDRESET_Pin GPIO_PIN_12
-#define LCDRESET_GPIO_Port GPIOA
+#define MT_FEEDBACK_Pin GPIO_PIN_7
+#define MT_FEEDBACK_GPIO_Port GPIOA
+#define MOTOR_PWM_Pin GPIO_PIN_8
+#define MOTOR_PWM_GPIO_Port GPIOA
+#define LCD_DC_Pin GPIO_PIN_11
+#define LCD_DC_GPIO_Port GPIOA
+#define LCD_RESET_Pin GPIO_PIN_12
+#define LCD_RESET_GPIO_Port GPIOA
 /* USER CODE BEGIN Private defines */
 
 /* USER CODE END Private defines */

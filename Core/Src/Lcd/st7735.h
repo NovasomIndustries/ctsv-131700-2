@@ -26,12 +26,12 @@
 #define ST7735_SPI_PORT hspi1
 extern SPI_HandleTypeDef ST7735_SPI_PORT;
 
-#define ST7735_RES_Pin       LCDRESET_Pin
-#define ST7735_RES_GPIO_Port LCDRESET_GPIO_Port
-#define ST7735_CS_Pin        LCDCS_Pin
-#define ST7735_CS_GPIO_Port  LCDCS_GPIO_Port
-#define ST7735_DC_Pin        LCDDC_Pin
-#define ST7735_DC_GPIO_Port  LCDDC_GPIO_Port
+#define ST7735_RES_Pin       LCD_RESET_Pin
+#define ST7735_RES_GPIO_Port LCD_RESET_GPIO_Port
+#define ST7735_CS_Pin        LCD_CS_Pin
+#define ST7735_CS_GPIO_Port  LCD_CS_GPIO_Port
+#define ST7735_DC_Pin        LCD_DC_Pin
+#define ST7735_DC_GPIO_Port  LCD_DC_GPIO_Port
 
 // AliExpress/eBay 1.8" display, default orientation
 /*
